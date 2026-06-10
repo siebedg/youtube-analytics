@@ -8,19 +8,26 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
 type LoginPageProps = {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; confirm?: string }>
 }
 
 async function signIn(formData: FormData) {
   "use server"
 
-  const supabase = await createClient()
-  const { error } = await supabase.auth.signInWithPassword({
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
-  })
+  const email = (formData.get("email") as string).trim().toLowerCase()
+  const password = formData.get("password") as string
 
-  if (error) redirect("/login?error=1")
+  const supabase = await createClient()
+  const { error } = await supabase.auth.signInWithPassword({ email, password })
+
+  if (error) {
+    const message = error.message.toLowerCase()
+    if (message.includes("email not confirmed") || error.code === "email_not_confirmed") {
+      redirect("/login?error=confirm")
+    }
+    redirect("/login?error=1")
+  }
+
   redirect("/")
 }
 
@@ -31,7 +38,17 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   } = await supabase.auth.getUser()
   if (user) redirect("/")
 
-  const { error } = await searchParams
+  const { error, confirm } = await searchParams
+
+  const statusMessage = confirm
+    ? "Account created. Check your email for a confirmation link, then log in."
+    : error === "confirm"
+      ? "Confirm your email first — check your inbox (and spam)."
+      : error
+        ? "Invalid email or password."
+        : null
+
+  const statusIsError = !confirm && !!error
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -59,8 +76,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 required
               />
             </div>
-            {error ? (
-              <p className="text-sm text-destructive">Invalid email or password.</p>
+            {statusMessage ? (
+              <p className={`text-sm ${statusIsError ? "text-destructive" : "text-muted-foreground"}`}>
+                {statusMessage}
+              </p>
             ) : null}
             <Button type="submit" className="w-full">
               Log in

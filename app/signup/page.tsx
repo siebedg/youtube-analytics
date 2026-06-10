@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import Link from "next/link"
+import { headers } from "next/headers"
 import { BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,21 +12,43 @@ type SignupPageProps = {
   searchParams: Promise<{ error?: string }>
 }
 
+async function getSiteOrigin() {
+  const headerStore = await headers()
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host")
+  const protocol = headerStore.get("x-forwarded-proto") ?? "http"
+  if (host) return `${protocol}://${host}`
+  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+}
+
 async function signUp(formData: FormData) {
   "use server"
 
+  const email = (formData.get("email") as string).trim().toLowerCase()
   const password = formData.get("password") as string
   const confirm = formData.get("confirm") as string
 
   if (password !== confirm) redirect("/signup?error=mismatch")
 
   const supabase = await createClient()
-  const { error } = await supabase.auth.signUp({
-    email: formData.get("email") as string,
+  const origin = await getSiteOrigin()
+  const { data, error } = await supabase.auth.signUp({
+    email,
     password,
+    options: {
+      emailRedirectTo: `${origin}/auth/callback`,
+    },
   })
 
   if (error) redirect("/signup?error=1")
+
+  if (data.user && data.user.identities?.length === 0) {
+    redirect("/signup?error=exists")
+  }
+
+  if (!data.session) {
+    redirect("/login?confirm=1")
+  }
+
   redirect("/")
 }
 
@@ -40,9 +63,11 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
   const errorMessage =
     error === "mismatch"
       ? "Passwords do not match."
-      : error
-        ? "Could not create account. Try a different email or a longer password."
-        : null
+      : error === "exists"
+        ? "An account with this email already exists. Try logging in."
+        : error
+          ? "Could not create account. Try a different email or a longer password."
+          : null
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
