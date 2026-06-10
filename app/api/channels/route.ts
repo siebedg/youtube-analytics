@@ -6,12 +6,13 @@ import { mapChannel } from "@/lib/channel-mapper"
 import { CHANNEL_COLORS, DEFAULT_METRICS } from "@/lib/types"
 
 export async function GET() {
-  const { error } = await requireAuth()
+  const { user, error } = await requireAuth()
   if (error) return error
 
-  await ensureDefaultChannels()
+  await ensureDefaultChannels(user.id)
 
   const channels = await prisma.channel.findMany({
+    where: { userId: user.id },
     include: { metrics: true, videos: true },
     orderBy: { sortOrder: "asc" },
   })
@@ -20,7 +21,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const { error } = await requireAuth()
+  const { user, error } = await requireAuth()
   if (error) return error
 
   const body = await request.json()
@@ -29,9 +30,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Channel name is required" }, { status: 400 })
   }
 
-  const count = await prisma.channel.count()
+  const count = await prisma.channel.count({ where: { userId: user.id } })
   const channel = await prisma.channel.create({
     data: {
+      userId: user.id,
       name,
       color: CHANNEL_COLORS[count % CHANNEL_COLORS.length],
       sortOrder: count,

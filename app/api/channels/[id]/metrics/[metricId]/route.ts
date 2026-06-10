@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { requireAuth } from "@/lib/api-auth"
+import { requireAuth, requireChannel } from "@/lib/api-auth"
 
 type Params = { params: Promise<{ id: string; metricId: string }> }
 
 export async function DELETE(_request: Request, { params }: Params) {
-  const { error } = await requireAuth()
+  const { user, error } = await requireAuth()
   if (error) return error
 
   const { id: channelId, metricId } = await params
+  const { error: channelError } = await requireChannel(user, channelId)
+  if (channelError) return channelError
+
   const metric = await prisma.metric.findUnique({ where: { id: metricId } })
 
   if (!metric || metric.channelId !== channelId) {

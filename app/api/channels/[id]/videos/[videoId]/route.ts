@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { requireAuth } from "@/lib/api-auth"
+import { requireAuth, requireChannel } from "@/lib/api-auth"
 import { parseVideoValues } from "@/lib/types"
 
 type Params = { params: Promise<{ id: string; videoId: string }> }
 
 export async function PATCH(request: Request, { params }: Params) {
-  const { error } = await requireAuth()
+  const { user, error } = await requireAuth()
   if (error) return error
 
-  const { videoId } = await params
+  const { id: channelId, videoId } = await params
+  const { error: channelError } = await requireChannel(user, channelId)
+  if (channelError) return channelError
+
   const body = await request.json()
   const data: { title?: string; values?: string } = {}
 
@@ -18,6 +21,13 @@ export async function PATCH(request: Request, { params }: Params) {
   }
   if (body.values && typeof body.values === "object") {
     data.values = JSON.stringify(body.values)
+  }
+
+  const existing = await prisma.video.findFirst({
+    where: { id: videoId, channelId },
+  })
+  if (!existing) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
   const video = await prisma.video.update({ where: { id: videoId }, data })
@@ -31,10 +41,20 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 export async function DELETE(_request: Request, { params }: Params) {
-  const { error } = await requireAuth()
+  const { user, error } = await requireAuth()
   if (error) return error
 
-  const { videoId } = await params
+  const { id: channelId, videoId } = await params
+  const { error: channelError } = await requireChannel(user, channelId)
+  if (channelError) return channelError
+
+  const existing = await prisma.video.findFirst({
+    where: { id: videoId, channelId },
+  })
+  if (!existing) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 })
+  }
+
   await prisma.video.delete({ where: { id: videoId } })
   return NextResponse.json({ ok: true })
 }

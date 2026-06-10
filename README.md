@@ -1,65 +1,59 @@
 # YouTube Analytics Dashboard
 
-A shared creator analytics dashboard for comparing YouTube video performance across metrics and channels. Built with Next.js, Prisma, and Supabase.
+A creator analytics dashboard for comparing YouTube video performance. Each user has their own account and data via Supabase Auth.
 
 ## Features
 
-- **Simple sign-in** — shared username/password, same database for you and a collaborator
+- **Supabase accounts** — sign up with email/password, your own channels and videos
 - **Multiple channels** — tab between channels, rename them, add new ones
 - **Channel comparison** — compare average metrics between two channels
 - **Edit videos** — update existing video data anytime
 - **Custom metrics** — add or remove metrics per channel
 - **Dark theme** — dark by default with a light/dark toggle
 
-## Local setup
+## Supabase setup (one time)
 
-### 1. Install dependencies
+1. Create a project at [supabase.com](https://supabase.com)
+2. **Authentication → Providers → Email** — leave enabled
+3. For easy signup without email confirmation: disable **Confirm email**
+4. **Authentication → URL Configuration** — add redirect URLs:
+   - `http://localhost:3000/auth/callback`
+   - `https://your-app.vercel.app/auth/callback`
+5. **Project Settings → API** — copy `URL` and `anon` key
+6. **Project Settings → Database** — copy connection strings for Prisma
+
+## Local setup
 
 ```bash
 npm install
-```
-
-### 2. Create a Supabase project
-
-1. Go to [supabase.com](https://supabase.com) and create a project
-2. Open **Project Settings → Database → Connection string**
-3. Copy the **Transaction pooler** URI → `DATABASE_URL` (port 6543)
-4. Copy the **Direct connection** URI → `DIRECT_URL` (port 5432)
-
-### 3. Configure environment
-
-Copy `.env.example` to `.env` and fill in all values.
-
-### 4. Initialize database
-
-```bash
+cp .env.example .env
+# fill in all env vars
 npm run db:push
-```
-
-### 5. Run locally
-
-```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and sign in with your `AUTH_USERNAME` / `AUTH_PASSWORD`.
+Open [http://localhost:3000/signup](http://localhost:3000/signup) to create an account.
+
+If you had old data without user accounts, reset the schema:
+
+```bash
+npx prisma db push --force-reset
+```
 
 ## Deploy to Vercel
 
-1. Import the GitHub repo on [vercel.com/new](https://vercel.com/new)
-2. Add these environment variables:
+Add these environment variables:
 
 | Variable | Value |
 |----------|-------|
-| `DATABASE_URL` | Supabase **Transaction pooler** (port 6543) |
-| `DIRECT_URL` | Supabase **Direct** connection (port 5432) |
-| `AUTH_SECRET` | Random string (`openssl rand -base64 32`) |
-| `AUTH_USERNAME` | Shared login username |
-| `AUTH_PASSWORD` | Shared login password |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
+| `DATABASE_URL` | Supabase transaction pooler (6543) |
+| `DIRECT_URL` | Supabase direct connection (5432) |
 
-3. Deploy — no OAuth redirect URIs or Google setup needed.
+No Google OAuth. Add your Vercel URL to Supabase redirect URLs (see above).
 
-Both you and your collaborator use the same username/password and share the same channels and videos.
+Your friend creates their own account at `/signup` — they only see their own data.
 
 ## Scripts
 

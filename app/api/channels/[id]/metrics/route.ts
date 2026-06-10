@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { requireAuth } from "@/lib/api-auth"
+import { requireAuth, requireChannel } from "@/lib/api-auth"
 import { slugifyKey } from "@/lib/types"
 
 type Params = { params: Promise<{ id: string }> }
 
 export async function POST(request: Request, { params }: Params) {
-  const { error } = await requireAuth()
+  const { user, error } = await requireAuth()
   if (error) return error
 
   const { id: channelId } = await params
+  const { error: channelError } = await requireChannel(user, channelId)
+  if (channelError) return channelError
+
   const body = await request.json()
   const label = typeof body.label === "string" ? body.label.trim() : ""
   const unit = body.unit === "percent" || body.unit === "duration" ? body.unit : "number"

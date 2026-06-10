@@ -7,12 +7,13 @@ const SEED_VIDEOS = [
   { title: "The Shadow", values: { views: 262, ctr: 2.8, apv: 24.6, avd: 2.95 } },
 ]
 
-export async function ensureDefaultChannels() {
-  const count = await prisma.channel.count()
+export async function ensureDefaultChannels(userId: string) {
+  const count = await prisma.channel.count({ where: { userId } })
   if (count > 0) return
 
-  const channel = await prisma.channel.create({
+  await prisma.channel.create({
     data: {
+      userId,
       name: "Channel 1",
       color: "oklch(0.58 0.22 27)",
       sortOrder: 0,
@@ -31,17 +32,13 @@ export async function ensureDefaultChannels() {
 
   await prisma.channel.create({
     data: {
+      userId,
       name: "Channel 2",
       color: "oklch(0.55 0.18 250)",
       sortOrder: 1,
       metrics: {
         create: DEFAULT_METRICS.map((m, i) => ({ ...m, sortOrder: i })),
       },
-      videos: {
-        create: [],
-      },
     },
   })
-
-  return channel
 }
