@@ -32,7 +32,12 @@ const METRIC_ICONS: Record<string, typeof Eye> = {
 
 type ViewMode = "channel" | "compare"
 
-export function Dashboard() {
+type DashboardProps = {
+  userId: string
+}
+
+export function Dashboard({ userId }: DashboardProps) {
+  const apiBase = `/api/${userId}`
   const [channels, setChannels] = useState<ChannelData[]>([])
   const [loading, setLoading] = useState(true)
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null)
@@ -45,7 +50,7 @@ export function Dashboard() {
   const [renaming, setRenaming] = useState(false)
 
   const loadChannels = useCallback(async () => {
-    const res = await fetch("/api/channels")
+    const res = await fetch(`${apiBase}/channels`)
     if (!res.ok) return
     const data: ChannelData[] = await res.json()
     setChannels(data)
@@ -59,7 +64,7 @@ export function Dashboard() {
     })
     setLoading(false)
     return data
-  }, [])
+  }, [apiBase])
 
   const activeChannel = channels.find((c) => c.id === activeChannelId) ?? null
   const compareChannel = channels.find((c) => c.id === compareChannelId) ?? null
@@ -127,7 +132,7 @@ export function Dashboard() {
 
   async function handleAddChannel() {
     const name = newChannelName.trim() || `Channel ${channels.length + 1}`
-    const res = await fetch("/api/channels", {
+    const res = await fetch(`${apiBase}/channels`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
@@ -143,7 +148,7 @@ export function Dashboard() {
     if (!activeChannel) return
     const name = newChannelName.trim()
     if (!name) return
-    await fetch(`/api/channels/${activeChannel.id}`, {
+    await fetch(`${apiBase}/channels/${activeChannel.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
@@ -155,7 +160,7 @@ export function Dashboard() {
 
   async function handleAddVideo(data: { title: string; values: Record<string, number> }) {
     if (!activeChannel) return
-    const res = await fetch(`/api/channels/${activeChannel.id}/videos`, {
+    const res = await fetch(`${apiBase}/channels/${activeChannel.id}/videos`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -166,7 +171,7 @@ export function Dashboard() {
 
   async function handleEditVideo(data: { title: string; values: Record<string, number> }) {
     if (!activeChannel || !editingVideo) return
-    const res = await fetch(`/api/channels/${activeChannel.id}/videos/${editingVideo.id}`, {
+    const res = await fetch(`${apiBase}/channels/${activeChannel.id}/videos/${editingVideo.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -178,14 +183,14 @@ export function Dashboard() {
 
   async function handleRemoveVideo(videoId: string) {
     if (!activeChannel) return
-    await fetch(`/api/channels/${activeChannel.id}/videos/${videoId}`, { method: "DELETE" })
+    await fetch(`${apiBase}/channels/${activeChannel.id}/videos/${videoId}`, { method: "DELETE" })
     if (editingVideo?.id === videoId) setEditingVideo(null)
     await loadChannels()
   }
 
   async function handleAddMetric(data: { label: string; unit: string }) {
     if (!activeChannel) return
-    const res = await fetch(`/api/channels/${activeChannel.id}/metrics`, {
+    const res = await fetch(`${apiBase}/channels/${activeChannel.id}/metrics`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -198,7 +203,7 @@ export function Dashboard() {
 
   async function handleRemoveMetric(metricId: string) {
     if (!activeChannel) return
-    const res = await fetch(`/api/channels/${activeChannel.id}/metrics/${metricId}`, {
+    const res = await fetch(`${apiBase}/channels/${activeChannel.id}/metrics/${metricId}`, {
       method: "DELETE",
     })
     if (!res.ok) throw new Error("Failed")

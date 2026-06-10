@@ -1,35 +1,29 @@
-import { getSession } from "@/lib/session"
-import { displayName } from "@/lib/passkeys"
-import { Dashboard } from "@/components/dashboard"
+import Link from "next/link"
+import { USERS, displayName } from "@/lib/users"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { UserMenu } from "@/components/user-menu"
-import { redirect } from "next/navigation"
 
-export default async function Page() {
-  const session = await getSession()
-  if (!session) redirect("/login")
-
+export default function HomePage() {
   return (
-    <main className="min-h-screen bg-background px-4 py-8 md:px-8 md:py-12">
-      <div className="mx-auto w-full max-w-5xl">
-        <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Creator Analytics</p>
-            <h1 className="text-balance text-3xl font-bold tracking-tight md:text-4xl">
-              YouTube Video Performance Comparison
-            </h1>
-            <p className="mt-2 max-w-2xl text-pretty leading-relaxed text-muted-foreground">
-              Compare how each video performed across reach, thumbnail effectiveness, retention, and
-              watch time. Manage multiple channels, edit existing data, and compare channels side by side.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <UserMenu name={displayName(session.userId)} />
-          </div>
-        </header>
-
-        <Dashboard />
+    <main className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="w-full max-w-md space-y-8 text-center">
+        <div>
+          <p className="text-sm font-medium text-muted-foreground">YouTube Analytics</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight">Pick a workspace</h1>
+        </div>
+        <div className="flex flex-col gap-3">
+          {USERS.map((slug) => (
+            <Link
+              key={slug}
+              href={`/${slug}`}
+              className="rounded-xl border border-border bg-card px-6 py-4 text-lg font-semibold transition-colors hover:bg-accent"
+            >
+              {displayName(slug)}
+            </Link>
+          ))}
+        </div>
+        <div className="flex justify-center">
+          <ThemeToggle />
+        </div>
       </div>
     </main>
   )

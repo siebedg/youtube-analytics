@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { requireAuth, requireChannel } from "@/lib/api-auth"
+import { requireUser, requireChannel } from "@/lib/users"
 import { parseVideoValues } from "@/lib/types"
 
-type Params = { params: Promise<{ id: string; videoId: string }> }
+type Params = { params: Promise<{ user: string; id: string; videoId: string }> }
 
 export async function PATCH(request: Request, { params }: Params) {
-  const { user, error } = await requireAuth()
+  const { userId, error } = await requireUser(params)
   if (error) return error
 
   const { id: channelId, videoId } = await params
-  const { error: channelError } = await requireChannel(user, channelId)
+  const { error: channelError } = await requireChannel(userId, channelId)
   if (channelError) return channelError
 
   const body = await request.json()
@@ -41,11 +41,11 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 export async function DELETE(_request: Request, { params }: Params) {
-  const { user, error } = await requireAuth()
+  const { userId, error } = await requireUser(params)
   if (error) return error
 
   const { id: channelId, videoId } = await params
-  const { error: channelError } = await requireChannel(user, channelId)
+  const { error: channelError } = await requireChannel(userId, channelId)
   if (channelError) return channelError
 
   const existing = await prisma.video.findFirst({

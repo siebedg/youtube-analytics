@@ -1,18 +1,20 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { requireAuth } from "@/lib/api-auth"
+import { requireUser } from "@/lib/users"
 import { ensureDefaultChannels } from "@/lib/channel-seed"
 import { mapChannel } from "@/lib/channel-mapper"
 import { CHANNEL_COLORS, DEFAULT_METRICS } from "@/lib/types"
 
-export async function GET() {
-  const { user, error } = await requireAuth()
+type Params = { params: Promise<{ user: string }> }
+
+export async function GET(_request: Request, { params }: Params) {
+  const { userId, error } = await requireUser(params)
   if (error) return error
 
-  await ensureDefaultChannels(user.id)
+  await ensureDefaultChannels(userId)
 
   const channels = await prisma.channel.findMany({
-    where: { userId: user.id },
+    where: { userId },
     include: { metrics: true, videos: true },
     orderBy: { sortOrder: "asc" },
   })
@@ -20,8 +22,8 @@ export async function GET() {
   return NextResponse.json(channels.map(mapChannel))
 }
 
-export async function POST(request: Request) {
-  const { user, error } = await requireAuth()
+export async function POST(request: Request, { params }: Params) {
+  const { userId, error } = await requireUser(params)
   if (error) return error
 
   const body = await request.json()
@@ -30,10 +32,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Channel name is required" }, { status: 400 })
   }
 
-  const count = await prisma.channel.count({ where: { userId: user.id } })
+  const count = await prisma.channel.count({ where: { userId } })
   const channel = await prisma.channel.create({
     data: {
-      userId: user.id,
+      userId,
       name,
       color: CHANNEL_COLORS[count % CHANNEL_COLORS.length],
       sortOrder: count,

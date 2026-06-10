@@ -1,35 +1,23 @@
-# YouTube Analytics Dashboard
+# YouTube Analytics
 
-YouTube video performance dashboard. Each passkey gets its own channels and data.
+Open `/zenex` or `/jojoh` — each URL has its own channels and videos in the same Supabase database.
 
-## Login
+## Vercel env vars
 
-Two passkeys: **zenex** and **jojoh** — click the button or type the word on `/login`.
+| Variable | Value |
+|----------|-------|
+| `DATABASE_URL` | Supabase pooler (6543) |
+| `DIRECT_URL` | Supabase direct (5432) |
 
-## Local setup
+No auth, no login, no Google.
+
+## Local
 
 ```bash
 npm install
 cp .env.example .env
-# Set AUTH_SECRET, DATABASE_URL, DIRECT_URL
 npm run db:push
 npm run dev
 ```
 
-## Deploy to Vercel
-
-| Variable | Value |
-|----------|-------|
-| `AUTH_SECRET` | Random string |
-| `DATABASE_URL` | Supabase pooler (6543) |
-| `DIRECT_URL` | Supabase direct (5432) |
-
-No Google, no Supabase Auth, no email signup.
-
-## Scripts
-
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Dev server |
-| `npm run build` | Production build |
-| `npm run db:push` | Sync schema |
+→ http://localhost:3000/zenex
