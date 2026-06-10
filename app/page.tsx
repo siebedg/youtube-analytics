@@ -2,9 +2,11 @@ import { auth } from "@/lib/auth"
 import { Dashboard } from "@/components/dashboard"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { UserMenu } from "@/components/user-menu"
+import { redirect } from "next/navigation"
 
 export default async function Page() {
   const session = await auth()
+  if (!session?.user) redirect("/login")
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 md:px-8 md:py-12">
@@ -22,13 +24,11 @@ export default async function Page() {
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            {session?.user ? (
-              <UserMenu
-                name={session.user.name}
-                email={session.user.email}
-                image={session.user.image}
-              />
-            ) : null}
+            <UserMenu
+              name={session.user.name}
+              email={session.user.email}
+              image={session.user.image}
+            />
           </div>
         </header>
 
