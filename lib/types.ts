@@ -55,8 +55,16 @@ export function formatMetricValue(value: number, unit: MetricUnit): string {
     const seconds = Math.round((value - minutes) * 60)
     return `${minutes}:${seconds.toString().padStart(2, "0")}`
   }
-  if (unit === "percent") return `${value}%`
-  return value.toLocaleString()
+  if (unit === "percent") {
+    const formatted = new Intl.NumberFormat("en-US", {
+      maximumFractionDigits: 1,
+      minimumFractionDigits: 0,
+    }).format(value)
+    return `${formatted}%`
+  }
+  return Number.isInteger(value)
+    ? value.toLocaleString()
+    : value.toLocaleString(undefined, { maximumFractionDigits: 1 })
 }
 
 export function slugifyKey(label: string): string {
