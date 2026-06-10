@@ -1,16 +1,33 @@
 import NextAuth from "next-auth"
-import Google from "next-auth/providers/google"
-import { PrismaAdapter } from "@auth/prisma-adapter"
-import { prisma } from "@/lib/prisma"
+import Credentials from "next-auth/providers/credentials"
 import { authConfig } from "@/lib/auth.config"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
-  adapter: PrismaAdapter(prisma),
   providers: [
-    Google({
-      clientId: process.env.AUTH_GOOGLE_ID,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET,
+    Credentials({
+      credentials: {
+        username: { label: "Username", type: "text" },
+        password: { label: "Password", type: "password" },
+      },
+      authorize(credentials) {
+        const username = process.env.AUTH_USERNAME
+        const password = process.env.AUTH_PASSWORD
+
+        if (!username || !password) return null
+
+        if (
+          credentials?.username === username &&
+          credentials?.password === password
+        ) {
+          return {
+            id: "shared-user",
+            name: username,
+          }
+        }
+
+        return null
+      },
     }),
   ],
 })
