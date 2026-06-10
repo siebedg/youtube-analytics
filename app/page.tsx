@@ -1,15 +1,13 @@
-import { createClient } from "@/lib/supabase/server"
+import { getSession } from "@/lib/session"
+import { displayName } from "@/lib/passkeys"
 import { Dashboard } from "@/components/dashboard"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { UserMenu } from "@/components/user-menu"
 import { redirect } from "next/navigation"
 
 export default async function Page() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) redirect("/login")
+  const session = await getSession()
+  if (!session) redirect("/login")
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 md:px-8 md:py-12">
@@ -27,7 +25,7 @@ export default async function Page() {
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <UserMenu email={user.email} />
+            <UserMenu name={displayName(session.userId)} />
           </div>
         </header>
 

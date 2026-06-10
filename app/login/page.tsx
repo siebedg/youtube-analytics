@@ -1,6 +1,7 @@
-import { createClient } from "@/lib/supabase/server"
+import { createSession } from "@/lib/session"
+import { verifyPasskey, PASSKEY_USERS, displayName } from "@/lib/passkeys"
+import { getSession } from "@/lib/session"
 import { redirect } from "next/navigation"
-import Link from "next/link"
 import { BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,47 +9,34 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
 type LoginPageProps = {
-  searchParams: Promise<{ error?: string; confirm?: string }>
+  searchParams: Promise<{ error?: string }>
 }
 
-async function signIn(formData: FormData) {
+async function loginWithPasskey(formData: FormData) {
   "use server"
 
-  const email = (formData.get("email") as string).trim().toLowerCase()
-  const password = formData.get("password") as string
+  const user = verifyPasskey(formData.get("passkey") as string)
+  if (!user) redirect("/login?error=1")
 
-  const supabase = await createClient()
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  await createSession(user)
+  redirect("/")
+}
 
-  if (error) {
-    const message = error.message.toLowerCase()
-    if (message.includes("email not confirmed") || error.code === "email_not_confirmed") {
-      redirect("/login?error=confirm")
-    }
-    redirect("/login?error=1")
-  }
+async function loginAsUser(formData: FormData) {
+  "use server"
 
+  const user = verifyPasskey(formData.get("user") as string)
+  if (!user) redirect("/login?error=1")
+
+  await createSession(user)
   redirect("/")
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (user) redirect("/")
+  const session = await getSession()
+  if (session) redirect("/")
 
-  const { error, confirm } = await searchParams
-
-  const statusMessage = confirm
-    ? "Account created. Check your email for a confirmation link, then log in."
-    : error === "confirm"
-      ? "Confirm your email first — check your inbox (and spam)."
-      : error
-        ? "Invalid email or password."
-        : null
-
-  const statusIsError = !confirm && !!error
+  const { error } = await searchParams
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -58,39 +46,47 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <BarChart3 className="h-6 w-6" aria-hidden="true" />
           </div>
           <CardTitle className="text-2xl">YouTube Analytics</CardTitle>
-          <CardDescription>Log in with your account.</CardDescription>
+          <CardDescription>Pick your account or enter your passkey.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <form action={signIn} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" autoComplete="email" required />
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-2 gap-3">
+            {PASSKEY_USERS.map((user) => (
+              <form key={user} action={loginAsUser}>
+                <input type="hidden" name="user" value={user} />
+                <Button type="submit" variant="outline" className="w-full">
+                  {displayName(user)}
+                </Button>
+              </form>
+            ))}
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
             </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">or type passkey</span>
+            </div>
+          </div>
+
+          <form action={loginWithPasskey} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="passkey">Passkey</Label>
               <Input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
+                id="passkey"
+                name="passkey"
+                placeholder="zenex or jojoh"
+                autoComplete="off"
                 required
               />
             </div>
-            {statusMessage ? (
-              <p className={`text-sm ${statusIsError ? "text-destructive" : "text-muted-foreground"}`}>
-                {statusMessage}
-              </p>
+            {error ? (
+              <p className="text-sm text-destructive">Unknown passkey. Use zenex or jojoh.</p>
             ) : null}
             <Button type="submit" className="w-full">
-              Log in
+              Continue
             </Button>
           </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            No account yet?{" "}
-            <Link href="/signup" className="text-primary underline-offset-4 hover:underline">
-              Create one
-            </Link>
-          </p>
         </CardContent>
       </Card>
     </main>
